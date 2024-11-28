@@ -5,6 +5,6 @@ import (
 	"candlestick-Go-Library/examples"
 )
 
-func CreateTOHLCVTestData() custplotter.TOHLCVs {
+func GenerateMarkerData() custplotter.MarketDataProvider {
 	return examples.CreateTOHLCVExampleData(250)
 }

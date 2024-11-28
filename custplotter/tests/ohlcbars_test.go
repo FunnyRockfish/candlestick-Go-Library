@@ -1,33 +1,42 @@
 package tests_test
 
 import (
-	"log"
 	"testing"
 
 	"candlestick-Go-Library/custplotter"
 	"candlestick-Go-Library/custplotter/internal"
+	"candlestick-Go-Library/logger"
 	"gonum.org/v1/plot"
 )
 
 func TestNewOHLCBars(t *testing.T) {
-	testTOHLCVs := internal.CreateTOHLCVTestData()
+	log := logger.CreateLogger()
 
-	p := plot.New()
+	log.Info("Generating market data for OHLC bars test")
+	testData := internal.GenerateMarkerData()
 
-	p.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
+	log.Info("Creating new plot for OHLC bars")
+	plotInstance := plot.New()
+	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
-	bars, err := custplotter.NewOHLCBars(testTOHLCVs)
+	log.Info("Creating OHLC bars")
+	bars, err := custplotter.InitializeOHLCBars(testData)
 	if err != nil {
-		log.Panic(err)
+		log.Errorf("Failed to create OHLC bars: %v", err)
+		t.FailNow()
 	}
 
-	p.Add(bars)
+	plotInstance.Add(bars)
 
 	testFile := "testdata/ohlcbars.png"
-	err = p.Save(1180, 200, testFile)
+	log.Infof("Saving OHLC bars plot to file: %s", testFile)
+	err = plotInstance.Save(1180, 200, testFile)
 	if err != nil {
-		log.Panic(err)
+		log.Errorf("Failed to save OHLC bars plot: %v", err)
+		t.FailNow()
 	}
 
+	log.Info("Validating generated OHLC bars image")
 	internal.TestImage(t, testFile)
+	log.Info("OHLC bars test passed successfully")
 }

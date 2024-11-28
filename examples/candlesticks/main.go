@@ -19,7 +19,7 @@ func main() {
 	p.Y.Label.Text = "Price"
 	p.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
-	bars, err := custplotter.NewCandlesticks(fakeTOHLCVs)
+	bars, err := custplotter.NewCandleChart(fakeTOHLCVs)
 	if err != nil {
 		log.Panic(err)
 	}

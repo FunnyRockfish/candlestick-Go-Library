@@ -1,33 +1,42 @@
 package tests_test
 
 import (
-	"log"
 	"testing"
 
 	"candlestick-Go-Library/custplotter"
 	"candlestick-Go-Library/custplotter/internal"
+	"candlestick-Go-Library/logger"
 	"gonum.org/v1/plot"
 )
 
 func TestNewVBars(t *testing.T) {
-	testTOHLCVs := internal.CreateTOHLCVTestData()
+	log := logger.CreateLogger()
 
-	p := plot.New()
+	log.Info("Generating market data for vertical bars test")
+	testData := internal.GenerateMarkerData()
 
-	p.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
+	log.Info("Creating new plot for vertical bars")
+	plotInstance := plot.New()
+	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
-	bars, err := custplotter.NewVBars(testTOHLCVs)
+	log.Info("Creating vertical bars")
+	bars, err := custplotter.InitializeVBars(testData)
 	if err != nil {
-		log.Panic(err)
+		log.Errorf("Failed to create vertical bars: %v", err)
+		t.FailNow()
 	}
 
-	p.Add(bars)
+	plotInstance.Add(bars)
 
 	testFile := "testdata/vbars.png"
-	err = p.Save(1180, 200, testFile)
+	log.Infof("Saving vertical bars plot to file: %s", testFile)
+	err = plotInstance.Save(1180, 200, testFile)
 	if err != nil {
-		log.Panic(err)
+		log.Errorf("Failed to save vertical bars plot: %v", err)
+		t.FailNow()
 	}
 
+	log.Info("Validating generated vertical bars image")
 	internal.TestImage(t, testFile)
+	log.Info("Vertical bars test passed successfully")
 }

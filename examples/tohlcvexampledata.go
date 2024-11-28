@@ -9,7 +9,7 @@ import (
 )
 
 // CreateTOHLCVExampleData generates and returns some artificial TOHLCV data for testing and demo purpose
-func CreateTOHLCVExampleData(n int) custplotter.TOHLCVs {
+func CreateTOHLCVExampleData(n int) custplotter.MarketData {
 	rnd := rand.New(rand.NewSource(1))
 	m := 4 * n
 	fract := make([]float64, m)
@@ -31,17 +31,17 @@ func CreateTOHLCVExampleData(n int) custplotter.TOHLCVs {
 		}
 	}
 
-	data := make(custplotter.TOHLCVs, n)
+	data := make(custplotter.MarketData, n)
 
 	loc, _ := time.LoadLocation("America/New_York")
 	for i := range data {
-		data[i].T = float64(time.Date(2024, 10, 30, 03, 04, 05, 0, loc).Add(time.Duration(i) * time.Minute).Unix())
-		data[i].O = fract[4*i]
-		data[i].H = math.Max(math.Max(fract[4*i], fract[4*i+1]), math.Max(fract[4*i+2], fract[4*i+3]))
-		data[i].L = math.Min(math.Min(fract[4*i], fract[4*i+1]), math.Min(fract[4*i+2], fract[4*i+3]))
-		data[i].C = fract[4*i+3]
+		data[i].Time = float64(time.Date(2024, 10, 30, 03, 04, 05, 0, loc).Add(time.Duration(i) * time.Minute).Unix())
+		data[i].Open = fract[4*i]
+		data[i].High = math.Max(math.Max(fract[4*i], fract[4*i+1]), math.Max(fract[4*i+2], fract[4*i+3]))
+		data[i].Low = math.Min(math.Min(fract[4*i], fract[4*i+1]), math.Min(fract[4*i+2], fract[4*i+3]))
+		data[i].Close = fract[4*i+3]
 
-		data[i].V = (data[i].H - data[i].L + math.Abs(data[i].C-data[i].O)) * 100 // just use this as a fake volume
+		data[i].Volume = (data[i].High - data[i].Low + math.Abs(data[i].Close-data[i].Open)) * 100 // just use this as a fake volume
 	}
 	return data
 }

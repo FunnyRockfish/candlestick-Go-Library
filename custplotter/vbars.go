@@ -13,7 +13,7 @@ import (
 // VBars implements the Plotter interface, drawing
 // a volume bar plot.
 type VBars struct {
-	TOHLCVs
+	MarketData
 
 	// ColorUp is the color of bars where C >= O
 	ColorUp color.Color
@@ -25,10 +25,10 @@ type VBars struct {
 	draw.LineStyle
 }
 
-// NewVBars creates as new bar plotter for
+// InitializeVBars creates as new bar plotter for
 // the given data.
-func NewVBars(TOHLCV TOHLCVer) (*VBars, error) {
-	cpy, err := CopyTOHLCVs(TOHLCV)
+func InitializeVBars(data MarketDataProvider) (*VBars, error) {
+	cpy, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err
 	}
@@ -37,15 +37,15 @@ func NewVBars(TOHLCV TOHLCVer) (*VBars, error) {
 	if len(cpy) > 1 {
 		minDeltaT = math.MaxFloat64
 		for i := 0; i < len(cpy)-1; i++ {
-			minDeltaT = math.Min(minDeltaT, cpy[i+1].T-cpy[i].T)
+			minDeltaT = math.Min(minDeltaT, cpy[i+1].Time-cpy[i].Time)
 		}
 	}
 
 	return &VBars{
-		TOHLCVs:   cpy,
-		ColorUp:   color.RGBA{R: 0, G: 128, B: 0, A: 255}, // eye is more sensible to green
-		ColorDown: color.RGBA{R: 196, G: 0, B: 0, A: 255},
-		LineStyle: plotter.DefaultLineStyle,
+		MarketData: cpy,
+		ColorUp:    color.RGBA{R: 0, G: 128, B: 0, A: 255}, // eye is more sensible to green
+		ColorDown:  color.RGBA{R: 196, G: 0, B: 0, A: 255},
+		LineStyle:  plotter.DefaultLineStyle,
 	}, nil
 }
 
@@ -54,8 +54,8 @@ func (bars *VBars) Plot(c draw.Canvas, plt *plot.Plot) {
 	trX, trY := plt.Transforms(&c)
 	lineStyle := bars.LineStyle
 
-	for _, TOHLCV := range bars.TOHLCVs {
-		if TOHLCV.C >= TOHLCV.O {
+	for _, TOHLCV := range bars.MarketData {
+		if TOHLCV.Close >= TOHLCV.Open {
 			lineStyle.Color = bars.ColorUp
 		} else {
 			lineStyle.Color = bars.ColorDown
@@ -63,9 +63,9 @@ func (bars *VBars) Plot(c draw.Canvas, plt *plot.Plot) {
 
 		// Transform the data
 		// to the corresponding drawing coordinate.
-		x := trX(TOHLCV.T)
+		x := trX(TOHLCV.Time)
 		y0 := trY(0)
-		y := trY(TOHLCV.V)
+		y := trY(TOHLCV.Volume)
 
 		bar := c.ClipLinesY([]vg.Point{{x, y0}, {x, y}})
 		c.StrokeLines(lineStyle, bar...)
@@ -80,10 +80,10 @@ func (bars *VBars) DataRange() (xmin, xmax, ymin, ymax float64) {
 	xmax = math.Inf(-1)
 	ymin = 0
 	ymax = math.Inf(-1)
-	for _, TOHLCV := range bars.TOHLCVs {
-		xmin = math.Min(xmin, TOHLCV.T)
-		xmax = math.Max(xmax, TOHLCV.T)
-		ymax = math.Max(ymax, TOHLCV.V)
+	for _, TOHLCV := range bars.MarketData {
+		xmin = math.Min(xmin, TOHLCV.Time)
+		xmax = math.Max(xmax, TOHLCV.Time)
+		ymax = math.Max(ymax, TOHLCV.Volume)
 	}
 	return
 }

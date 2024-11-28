@@ -16,7 +16,7 @@ var DefaultTickWidth = vg.Points(2)
 // OHLCBars implements the Plotter interface, drawing
 // a bar plot of time, open, high, low, close tuples.
 type OHLCBars struct {
-	TOHLCVs
+	MarketData
 
 	// ColorUp is the color of bars where C >= O
 	ColorUp color.Color
@@ -32,20 +32,20 @@ type OHLCBars struct {
 	TickWidth vg.Length
 }
 
-// NewOHLCBars NewBars creates as new bar plotter for
+// InitializeOHLCBars creates as new bar plotter for
 // the given data.
-func NewOHLCBars(TOHLCV TOHLCVer) (*OHLCBars, error) {
-	cpy, err := CopyTOHLCVs(TOHLCV)
+func InitializeOHLCBars(data MarketDataProvider) (*OHLCBars, error) {
+	cpy, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &OHLCBars{
-		TOHLCVs:   cpy,
-		ColorUp:   color.RGBA{R: 0, G: 128, B: 0, A: 255}, // eye is more sensible to green
-		ColorDown: color.RGBA{R: 196, G: 0, B: 0, A: 255},
-		LineStyle: plotter.DefaultLineStyle,
-		TickWidth: DefaultTickWidth,
+		MarketData: cpy,
+		ColorUp:    color.RGBA{R: 0, G: 128, B: 0, A: 255}, // eye is more sensible to green
+		ColorDown:  color.RGBA{R: 196, G: 0, B: 0, A: 255},
+		LineStyle:  plotter.DefaultLineStyle,
+		TickWidth:  DefaultTickWidth,
 	}, nil
 }
 
@@ -54,8 +54,8 @@ func (bars *OHLCBars) Plot(c draw.Canvas, plt *plot.Plot) {
 	trX, trY := plt.Transforms(&c)
 	lineStyle := bars.LineStyle
 
-	for _, TOHLCV := range bars.TOHLCVs {
-		if TOHLCV.C >= TOHLCV.O {
+	for _, TOHLCV := range bars.MarketData {
+		if TOHLCV.Close >= TOHLCV.Open {
 			lineStyle.Color = bars.ColorUp
 		} else {
 			lineStyle.Color = bars.ColorDown
@@ -63,11 +63,11 @@ func (bars *OHLCBars) Plot(c draw.Canvas, plt *plot.Plot) {
 
 		// Transform the data
 		// to the corresponding drawing coordinate.
-		x := trX(TOHLCV.T)
-		yo := trY(TOHLCV.O)
-		yh := trY(TOHLCV.H)
-		yl := trY(TOHLCV.L)
-		yc := trY(TOHLCV.C)
+		x := trX(TOHLCV.Time)
+		yo := trY(TOHLCV.Open)
+		yh := trY(TOHLCV.High)
+		yl := trY(TOHLCV.Low)
+		yc := trY(TOHLCV.Close)
 
 		bar := c.ClipLinesY([]vg.Point{{x, yl}, {x, yh}})
 		c.StrokeLines(lineStyle, bar...)
@@ -90,11 +90,11 @@ func (bars *OHLCBars) DataRange() (xmin, xmax, ymin, ymax float64) {
 	xmax = math.Inf(-1)
 	ymin = math.Inf(1)
 	ymax = math.Inf(-1)
-	for _, TOHLCV := range bars.TOHLCVs {
-		xmin = math.Min(xmin, TOHLCV.T)
-		xmax = math.Max(xmax, TOHLCV.T)
-		ymin = math.Min(ymin, TOHLCV.L)
-		ymax = math.Max(ymax, TOHLCV.H)
+	for _, TOHLCV := range bars.MarketData {
+		xmin = math.Min(xmin, TOHLCV.Time)
+		xmax = math.Max(xmax, TOHLCV.Time)
+		ymin = math.Min(ymin, TOHLCV.Low)
+		ymax = math.Max(ymax, TOHLCV.High)
 	}
 	return
 }

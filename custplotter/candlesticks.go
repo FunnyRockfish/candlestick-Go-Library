@@ -16,7 +16,7 @@ var DefaultCandleWidthFactor = 3
 // Candlesticks implements the Plotter interface, drawing
 // a bar plot of time, open, high, low, close tuples.
 type Candlesticks struct {
-	TOHLCVs
+	MarketData
 
 	// ColorUp is the color of sticks where C >= O
 	ColorUp color.Color
@@ -36,14 +36,14 @@ type Candlesticks struct {
 
 // NewCandlesticks creates as new candlestick plotter for
 // the given data.
-func NewCandlesticks(TOHLCV TOHLCVer) (*Candlesticks, error) {
-	cpy, err := CopyTOHLCVs(TOHLCV)
+func NewCandleChart(data MarketDataProvider) (*Candlesticks, error) {
+	cpy, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Candlesticks{
-		TOHLCVs:        cpy,
+		MarketData:     cpy,
 		FixedLineColor: true,
 		ColorUp:        color.RGBA{R: 128, G: 192, B: 128, A: 255}, // eye is more sensible to green
 		ColorDown:      color.RGBA{R: 255, G: 128, B: 128, A: 255},
@@ -57,9 +57,9 @@ func (sticks *Candlesticks) Plot(c draw.Canvas, plt *plot.Plot) {
 	trX, trY := plt.Transforms(&c)
 	lineStyle := sticks.LineStyle
 
-	for _, TOHLCV := range sticks.TOHLCVs {
+	for _, TOHLCV := range sticks.MarketData {
 		var fillColor color.Color
-		if TOHLCV.C >= TOHLCV.O {
+		if TOHLCV.Close >= TOHLCV.Open {
 			fillColor = sticks.ColorUp
 		} else {
 			fillColor = sticks.ColorDown
@@ -70,11 +70,11 @@ func (sticks *Candlesticks) Plot(c draw.Canvas, plt *plot.Plot) {
 		}
 		// Transform the data
 		// to the corresponding drawing coordinate.
-		x := trX(TOHLCV.T)
-		yh := trY(TOHLCV.H)
-		yl := trY(TOHLCV.L)
-		ymaxoc := trY(math.Max(TOHLCV.O, TOHLCV.C))
-		yminoc := trY(math.Min(TOHLCV.O, TOHLCV.C))
+		x := trX(TOHLCV.Time)
+		yh := trY(TOHLCV.High)
+		yl := trY(TOHLCV.Low)
+		ymaxoc := trY(math.Max(TOHLCV.Open, TOHLCV.Close))
+		yminoc := trY(math.Min(TOHLCV.Open, TOHLCV.Close))
 
 		// top stick
 		line := c.ClipLinesY([]vg.Point{{x, yh}, {x, ymaxoc}})
@@ -97,11 +97,11 @@ func (sticks *Candlesticks) DataRange() (xMin, xMax, yMin, yMax float64) {
 	xMax = math.Inf(-1)
 	yMin = math.Inf(1)
 	yMax = math.Inf(-1)
-	for _, TOHLCV := range sticks.TOHLCVs {
-		xMin = math.Min(xMin, TOHLCV.T)
-		xMax = math.Max(xMax, TOHLCV.T)
-		yMin = math.Min(yMin, TOHLCV.L)
-		yMax = math.Max(yMax, TOHLCV.H)
+	for _, TOHLCV := range sticks.MarketData {
+		xMin = math.Min(xMin, TOHLCV.Time)
+		xMax = math.Max(xMax, TOHLCV.Time)
+		yMin = math.Min(yMin, TOHLCV.Low)
+		yMax = math.Max(yMax, TOHLCV.High)
 	}
 	return
 }

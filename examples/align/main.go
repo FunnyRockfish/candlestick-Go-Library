@@ -46,10 +46,10 @@ func main() {
 	p1.Y.Label.Text = "Price"
 	p1.X.Tick.Marker = CustomTimeTicks{
 		Format: "2006-01-02\n15:04:05",
-		Step:   1 * time.Hour, // Пример: метка каждый день
+		Step:   1 * time.Hour, // например: метка каждый час
 	}
 
-	candlesticks, err := custplotter.NewCandlesticks(fakeTOHLCVs)
+	candlesticks, err := custplotter.NewCandleChart(fakeTOHLCVs)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -64,7 +64,7 @@ func main() {
 	p2.Y.Label.Text = "Volume"
 	p2.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
-	vBars, err := custplotter.NewVBars(fakeTOHLCVs)
+	vBars, err := custplotter.InitializeVBars(fakeTOHLCVs)
 	if err != nil {
 		log.Panic(err)
 	}
