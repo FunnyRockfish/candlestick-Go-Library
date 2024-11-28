@@ -1,33 +1,35 @@
-# plotext
+Это курсовая работа работа по предмету "Алгоритмы Компьютерной Графики"  
+Студент группы ИУ9-52Б Черников Артём
 
-**Plot** **ext**ensions and custom plotters for the [github.com/gonum/plot](https://github.com/gonum/plot) packages.
 
-## Custom plotters
+Работа является надстройкой к библиотеке [github.com/gonum/plot](https://github.com/gonum/plot).
 
-The `custplotter` package contains some **cus**tom **plotter**s which can be used to create financial charts with golang using the `gonum/plot` package.
+## Пользовательские построители графиков
 
-### OHLC bars plotter
+Пакет `custplotter` содержит несколько **пользовательских плоттеров, которые можно использовать для создания финансовых графиков на языке Go с использованием пакета `gonum/plot`.
 
-The example code in `plotext/examples/ohlcbars/main.go` shows how a plot containing an OHLC bar chart can be created:
+### Построитель OHLC баров
+
+Пример кода в `candlestick-Go-Library/examples/ohlcbars/main.go` показывает, как можно создать график, содержащий OHLC бар-чарт:
 
 ![OHLC bars](examples/ohlcbars/ohlcbars.png)
 
-### Candlesticks plotter
+### Построитель свечей (Candlesticks)
 
-The example code in `plotext/examples/candlesticks/main.go` shows how a plot containing a candlestick chart can be created:
+Пример кода в `candlestick-Go-Library/examples/candlesticks/main.go` демонстрирует, как создать график со свечным чартом:
 
 ![Candlesticks](examples/candlesticks/candlesticks.png)
 
-### Volume bars plotter
+### Построитель объёмных баров
 
-The example code in `plotext/examples/vbars/main.go` shows how a plot containing a volume bar chart can be created:
+Пример кода в `candlestick-Go-Library/examples/vbars/main.go` показывает, как можно создать график, содержащий бар-чарт объёма торгов:
 
 ![Volume bars](examples/vbars/vbars.png)
 
-## Extensions
+## Расширения
 
-### Alignment of plots with proportions
+### Накладывание графиков друг на друга по горизонтали и выравнивание 
 
-The `plotext` package contains an extended `Align` function which can be used to align e.g. an OHLC bar cart and a volume bar chart vertically while providing e.g. 2/3 of the available height for the OHLC chart and 1/3 of the height for the volume chart.
+С помощью функции `Align` можно выравнивать, например, OHLC бар-чарт и бар-чарт объёма, предоставляя, например, 2/3 доступной высоты для OHLC-чарта и 1/3 высоты для объёмного графика.
 
 ![Alignment](examples/align/align.png)
