@@ -33,12 +33,8 @@ func (ctt CustomTimeTicks) Ticks(min, max float64) []plot.Tick {
 }
 
 func main() {
-	// This simple example creates a candlestick plot above a volume plot.
-
-	n := 260
+	n := 300
 	fakeTOHLCVs := examples.CreateTOHLCVExampleData(n)
-
-	// create the candlesticks plot
 
 	p1 := plot.New()
 
@@ -55,14 +51,14 @@ func main() {
 	}
 
 	p1.Add(candlesticks)
-
-	// create the volume bars plot
-
 	p2 := plot.New()
 
 	p2.X.Label.Text = "Time"
 	p2.Y.Label.Text = "Volume"
-	p2.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
+	p2.X.Tick.Marker = CustomTimeTicks{
+		Format: "2006-01-02\n15:04:05",
+		Step:   1 * time.Hour, // например: метка каждый час
+	}
 
 	vBars, err := custplotter.InitializeVBars(fakeTOHLCVs)
 	if err != nil {
@@ -71,21 +67,19 @@ func main() {
 
 	p2.Add(vBars)
 
-	library.UniteAxisRanges([]*plot.Axis{&p1.X, &p2.X})
+	library.AlignAxisRanges([]*plot.Axis{&p1.X, &p2.X})
 
-	// create a table with one column and two rows
-	table := library.Table{
-		RowHeights: []float64{2, 1}, // 2/3 for candlesticks and 1/3 for volume bars
-		ColWidths:  []float64{1},
+	table := library.GridLayout{
+		RowSizes:    []float64{2, 1}, // 2/3
+		ColumnSizes: []float64{1},
 	}
 
-	// see align_test.go for another example on how to construct this structure using loops
 	plots := [][]*plot.Plot{{p1}, {p2}}
 
-	img := vgimg.New(1450, 300)
+	img := vgimg.New(2250, 300)
 	dc := draw.New(img)
 
-	canvases := table.Align(plots, dc)
+	canvases := table.AlignCanvases(plots, dc)
 	plots[0][0].Draw(canvases[0][0])
 	plots[1][0].Draw(canvases[1][0])
 

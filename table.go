@@ -1,191 +1,105 @@
 package library
 
 import (
-	"fmt"
-	"math"
-
+	"candlestick-Go-Library/logger"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/vg"
 	"gonum.org/v1/plot/vg/draw"
 )
 
-// Table creates a table of subcanvases from a Canvas. In contrast to tiles of
-// gonum.org/v1/plot the columns and rows of a table can have different widths
-// and heights respectively.
-type Table struct {
-	RowHeights []float64
-	// ColWidths specifies the number of columns and their relative widths
-	ColWidths []float64
-	// PadTop, PadBottom, PadRight, and PadLeft specify the padding
-	// on the corresponding side of the table.
-	PadTop, PadBottom, PadRight, PadLeft vg.Length
-	// PadX and PadY specify the padding between columns and rows
-	// of tiles respectively.
-	PadX, PadY vg.Length
+// GridLayout создаёт таблицу с субхолстами из Canvas.
+// В отличие от tiles из gonum.org/v1/plot, строки и столбцы таблицы
+// могут иметь разную высоту и ширину соответственно.
+type GridLayout struct {
+	RowSizes []float64
+	// ColumnSizes задаёт количество столбцов и их относительные размеры.
+	ColumnSizes []float64
+	// PaddingTop, PaddingBottom, PaddingRight и PaddingLeft задают отступы
+	// с соответствующей стороны таблицы.
+	PaddingTop, PaddingBottom, PaddingRight, PaddingLeft vg.Length
+	// PaddingX и PaddingY задают отступы между столбцами и строками соответственно.
+	PaddingX, PaddingY vg.Length
 }
 
-// At returns the subcanvas within c that corresponds to the
-// cell at column x, row y, where 0, 0 is the upper, right corner
-func (tab Table) At(c draw.Canvas, x, y int) draw.Canvas {
-	// Canvas origin is left, bottom. Positive directions are right, up
-	var sumColWidths float64
-	for _, relColWidth := range tab.ColWidths {
-		sumColWidths += relColWidth
+// SubCanvas возвращает субхолст внутри canvas, который соответствует
+// ячейке в столбце colIndex и строке rowIndex, где 0, 0 — верхний правый угол.
+func (grid GridLayout) SubCanvas(canvas draw.Canvas, colIndex, rowIndex int) draw.Canvas {
+	log := logger.CreateLogger() // Предполагается, что logger.CreateLogger() возвращает SugaredLogger
+
+	// Проверяем корректность индексов.
+	if colIndex >= len(grid.ColumnSizes) || rowIndex >= len(grid.RowSizes) {
+		log.Errorf("Индекс ячейки вне допустимого диапазона: colIndex=%d, rowIndex=%d", colIndex, rowIndex)
+		return draw.Canvas{}
 	}
 
-	var sumColWidthsRight float64
-	for i, relColWidth := range tab.ColWidths {
-		if i == x {
-			break
-		}
-		sumColWidthsRight += relColWidth
+	// Сумма всех относительных размеров столбцов.
+	totalColumnWidth := 0.0
+	for _, colWidth := range grid.ColumnSizes {
+		totalColumnWidth += colWidth
 	}
 
-	var sumRowHeights float64
-	for _, RowHeights := range tab.RowHeights {
-		sumRowHeights += RowHeights
+	// Сумма относительных размеров для столбцов слева от текущего.
+	columnOffset := 0.0
+	for i := 0; i < colIndex; i++ {
+		columnOffset += grid.ColumnSizes[i]
 	}
 
-	var sumRowHeightsAbove float64
-	for i, RowHeights := range tab.RowHeights {
-		if i == y {
-			break
-		}
-		sumRowHeightsAbove += RowHeights
+	// Сумма всех относительных размеров строк.
+	totalRowHeight := 0.0
+	for _, rowHeight := range grid.RowSizes {
+		totalRowHeight += rowHeight
 	}
 
-	heightPerRelUnit := (c.Max.Y - c.Min.Y - tab.PadTop - tab.PadBottom -
-		vg.Length(len(tab.RowHeights)-1)*tab.PadY) / vg.Length(sumRowHeights)
-	widthPerRelUnit := (c.Max.X - c.Min.X - tab.PadLeft - tab.PadRight -
-		vg.Length(len(tab.ColWidths)-1)*tab.PadX) / vg.Length(sumColWidths)
+	// Сумма относительных размеров для строк выше текущей.
+	rowOffset := 0.0
+	for i := 0; i < rowIndex; i++ {
+		rowOffset += grid.RowSizes[i]
+	}
 
-	ymax := c.Max.Y - tab.PadTop - vg.Length(y)*(tab.PadY) - vg.Length(sumRowHeightsAbove)*heightPerRelUnit
-	ymin := ymax - vg.Length(tab.RowHeights[y])*heightPerRelUnit
+	// Вычисление размеров холста.
+	rowUnitHeight := (canvas.Max.Y - canvas.Min.Y - grid.PaddingTop - grid.PaddingBottom -
+		vg.Length(len(grid.RowSizes)-1)*grid.PaddingY) / vg.Length(totalRowHeight)
+	columnUnitWidth := (canvas.Max.X - canvas.Min.X - grid.PaddingLeft - grid.PaddingRight -
+		vg.Length(len(grid.ColumnSizes)-1)*grid.PaddingX) / vg.Length(totalColumnWidth)
 
-	xmin := c.Min.X + tab.PadLeft + vg.Length(x)*(tab.PadX) + vg.Length(sumColWidthsRight)*widthPerRelUnit
-	xmax := xmin + vg.Length(tab.ColWidths[x])*widthPerRelUnit
+	yMax := canvas.Max.Y - grid.PaddingTop - vg.Length(rowIndex)*grid.PaddingY - vg.Length(rowOffset)*rowUnitHeight
+	yMin := yMax - vg.Length(grid.RowSizes[rowIndex])*rowUnitHeight
+
+	xMin := canvas.Min.X + grid.PaddingLeft + vg.Length(colIndex)*grid.PaddingX + vg.Length(columnOffset)*columnUnitWidth
+	xMax := xMin + vg.Length(grid.ColumnSizes[colIndex])*columnUnitWidth
 
 	return draw.Canvas{
-		Canvas: vg.Canvas(c),
+		Canvas: vg.Canvas(canvas),
 		Rectangle: vg.Rectangle{
-			Min: vg.Point{X: xmin, Y: ymin},
-			Max: vg.Point{X: xmax, Y: ymax},
+			Min: vg.Point{X: xMin, Y: yMin},
+			Max: vg.Point{X: xMax, Y: yMax},
 		},
 	}
 }
 
-// test Artem`s comment for merge branches
+// AlignCanvases возвращает двумерный массив Canvases (по строкам),
+// которые обеспечивают выравнивание всех DataCanvas графиков.
+func (grid GridLayout) AlignCanvases(plots [][]*plot.Plot, parentCanvas draw.Canvas) [][]draw.Canvas {
+	log := logger.CreateLogger()
 
-// Align returns a two-dimensional row-major array of Canvases which will
-// produce plots with DataCanvases that are neatly aligned.
-func (tab Table) Align(plots [][]*plot.Plot, dc draw.Canvas) [][]draw.Canvas {
-	o := make([][]draw.Canvas, len(plots))
-
-	if len(plots) != len(tab.RowHeights) {
-		fmt.Println("plot: plots rows != tiles rows", len(plots), tab.RowHeights)
+	if len(plots) != len(grid.RowSizes) {
+		log.Errorf("Количество строк в графиках (%d) не соответствует количеству строк в таблице (%d)", len(plots), len(grid.RowSizes))
+		return nil
 	}
 
-	// Create the initial tiles.
-	for j := 0; j < len(tab.RowHeights); j++ {
-		if len(plots[j]) != len(tab.ColWidths) {
-			fmt.Println("plot: plots row columns!= tiles columns ", j, len(plots[j]), tab.RowHeights)
+	output := make([][]draw.Canvas, len(plots))
+
+	for rowIndex := 0; rowIndex < len(grid.RowSizes); rowIndex++ {
+		if len(plots[rowIndex]) != len(grid.ColumnSizes) {
+			log.Errorf("Количество столбцов в строке %d графиков (%d) не соответствует количеству столбцов в таблице (%d)", rowIndex, len(plots[rowIndex]), len(grid.ColumnSizes))
+			return nil
 		}
 
-		o[j] = make([]draw.Canvas, len(plots[j]))
-		for i := 0; i < len(tab.ColWidths); i++ {
-			o[j][i] = tab.At(dc, i, j)
-		}
-	}
-
-	type posNeg struct {
-		p, n float64 // x: n = left, p = right; y: n = bottom; p = top
-	}
-	xSpacing := make([]posNeg, len(tab.ColWidths))
-	ySpacing := make([]posNeg, len(tab.RowHeights))
-
-	// Calculate the maximum spacing between data canvases
-	// for each row and column.
-	for j, row := range plots {
-		for i, p := range row {
-			if p == nil {
-				continue
-			}
-			c := o[j][i]
-			dataC := p.DataCanvas(o[j][i])
-			xSpacing[i].n = math.Max(float64(dataC.Min.X-c.Min.X), xSpacing[i].n)
-			xSpacing[i].p = math.Max(float64(c.Max.X-dataC.Max.X), xSpacing[i].p)
-			ySpacing[j].n = math.Max(float64(dataC.Min.Y-c.Min.Y), ySpacing[j].n)
-			ySpacing[j].p = math.Max(float64(c.Max.Y-dataC.Max.Y), ySpacing[j].p)
+		output[rowIndex] = make([]draw.Canvas, len(plots[rowIndex]))
+		for colIndex := 0; colIndex < len(grid.ColumnSizes); colIndex++ {
+			output[rowIndex][colIndex] = grid.SubCanvas(parentCanvas, colIndex, rowIndex)
 		}
 	}
 
-	// Calculate the total row and column spacing.
-	var xTotalSpace float64
-	xTotalSpace = float64(tab.PadLeft+tab.PadRight) + float64(len(tab.ColWidths)-1)*float64(tab.PadX)
-	for _, s := range xSpacing {
-		xTotalSpace += s.n + s.p
-	}
-	var yTotalSpace float64
-	yTotalSpace = float64(tab.PadTop+tab.PadBottom) + float64(len(tab.RowHeights)-1)*float64(tab.PadY)
-	for _, s := range ySpacing {
-		yTotalSpace += s.n + s.p
-	}
-
-	var sumColWidths float64
-	for _, colWidth := range tab.ColWidths {
-		sumColWidths += colWidth
-	}
-
-	var sumRowHeights float64
-	for _, rowHeight := range tab.RowHeights {
-		sumRowHeights += rowHeight
-	}
-
-	avgWidthPerUnit := vg.Length((float64(dc.Max.X-dc.Min.X) - xTotalSpace) / sumColWidths)
-	avgHeightPerUnit := vg.Length((float64(dc.Max.Y-dc.Min.Y) - yTotalSpace) / sumRowHeights)
-
-	moveVertical := make([]vg.Length, len(tab.ColWidths))
-	for j := len(tab.RowHeights) - 1; j >= 0; j-- {
-		row := plots[j]
-		var moveHorizontal vg.Length
-		for i, p := range row {
-			c := o[j][i]
-
-			if p != nil {
-				dataC := p.DataCanvas(c)
-				// Adjust the horizontal and vertical spacing between
-				// canvases to match the maximum for each column and row,
-				// respectively.
-				c = draw.Crop(c,
-					vg.Length(xSpacing[i].n)-(dataC.Min.X-c.Min.X),
-					c.Max.X-dataC.Max.X-vg.Length(xSpacing[i].p),
-					vg.Length(ySpacing[j].n)-(dataC.Min.Y-c.Min.Y),
-					c.Max.Y-dataC.Max.Y-vg.Length(ySpacing[j].p),
-				)
-			}
-
-			var width, height vg.Length
-			if p == nil {
-				width = c.Max.X - c.Min.X - vg.Length(xSpacing[i].p+xSpacing[i].n)
-				height = c.Max.Y - c.Min.Y - vg.Length(ySpacing[j].p+ySpacing[j].n)
-			} else {
-				dataC := p.DataCanvas(c)
-				width = dataC.Max.X - dataC.Min.X
-				height = dataC.Max.Y - dataC.Min.Y
-			}
-			// Adjust the canvas so that the height of the DataCanvas
-			// is the same for all plots in a row and the width of the
-			// DataCanvas is the same for all plots in a column.
-			o[j][i] = draw.Crop(c,
-				moveHorizontal,
-				moveHorizontal+avgWidthPerUnit*vg.Length(tab.ColWidths[i])-width,
-				moveVertical[i],
-				moveVertical[i]+avgHeightPerUnit*vg.Length(tab.RowHeights[j])-height,
-			)
-			moveHorizontal += avgWidthPerUnit*vg.Length(tab.ColWidths[i]) - width
-			moveVertical[i] += avgHeightPerUnit*vg.Length(tab.RowHeights[j]) - height
-		}
-	}
-
-	return o
+	return output
 }

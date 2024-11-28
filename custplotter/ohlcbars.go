@@ -10,30 +10,30 @@ import (
 	"gonum.org/v1/plot/vg/draw"
 )
 
-// DefaultTickWidth is the default width of the open and close ticks.
+// DefaultTickWidth задаёт ширину отметок open и close.
 var DefaultTickWidth = vg.Points(2)
 
-// OHLCBars implements the Plotter interface, drawing
-// a bar plot of time, open, high, low, close tuples.
+// OHLCBars реализует интерфейс Plotter, создавая
+// столбчатую диаграмму из кортежей time, open, high, low, close.
 type OHLCBars struct {
 	MarketData
 
-	// ColorUp is the color of bars where C >= O
+	// ColorUp — цвет столбцов, где C >= O.
 	ColorUp color.Color
 
-	// ColorDown is the color of bars where C < O
+	// ColorDown — цвет столбцов, где C < O.
 	ColorDown color.Color
 
-	// LineStyle is the style used to draw the bars.
+	// LineStyle — стиль линий для рисования столбцов.
 	draw.LineStyle
 
-	// CapWidth is the width of the caps drawn at the top
-	// of each error bar.
+	// TickWidth — ширина отметок, рисуемых сверху
+	// и снизу каждой полосы ошибки.
 	TickWidth vg.Length
 }
 
-// InitializeOHLCBars creates as new bar plotter for
-// the given data.
+// InitializeOHLCBars создаёт новый объект для
+// построения диаграммы столбцов на основе предоставленных данных.
 func InitializeOHLCBars(data MarketDataProvider) (*OHLCBars, error) {
 	cpy, err := CloneMarketData(data)
 	if err != nil {
@@ -42,14 +42,14 @@ func InitializeOHLCBars(data MarketDataProvider) (*OHLCBars, error) {
 
 	return &OHLCBars{
 		MarketData: cpy,
-		ColorUp:    color.RGBA{R: 0, G: 128, B: 0, A: 255}, // eye is more sensible to green
+		ColorUp:    color.RGBA{R: 0, G: 128, B: 0, A: 255}, // Зелёный цвет более заметен для глаза.
 		ColorDown:  color.RGBA{R: 196, G: 0, B: 0, A: 255},
 		LineStyle:  plotter.DefaultLineStyle,
 		TickWidth:  DefaultTickWidth,
 	}, nil
 }
 
-// Plot implements the Plot method of the plot.Plotter interface.
+// Plot реализует метод Plot интерфейса plot.Plotter.
 func (bars *OHLCBars) Plot(c draw.Canvas, plt *plot.Plot) {
 	trX, trY := plt.Transforms(&c)
 	lineStyle := bars.LineStyle
@@ -61,21 +61,23 @@ func (bars *OHLCBars) Plot(c draw.Canvas, plt *plot.Plot) {
 			lineStyle.Color = bars.ColorDown
 		}
 
-		// Transform the data
-		// to the corresponding drawing coordinate.
+		// Преобразование данных в соответствующие координаты для рисования.
 		x := trX(TOHLCV.Time)
 		yo := trY(TOHLCV.Open)
 		yh := trY(TOHLCV.High)
 		yl := trY(TOHLCV.Low)
 		yc := trY(TOHLCV.Close)
 
+		// Рисование вертикальной полосы (high-low).
 		bar := c.ClipLinesY([]vg.Point{{x, yl}, {x, yh}})
 		c.StrokeLines(lineStyle, bar...)
 
+		// Рисование отметки для open.
 		if c.Contains(vg.Point{X: x, Y: yo}) {
 			c.StrokeLine2(lineStyle, x, yo, x-bars.TickWidth, yo)
 		}
 
+		// Рисование отметки для close.
 		if c.Contains(vg.Point{X: x, Y: yc}) {
 			c.StrokeLine2(lineStyle, x, yc, x+bars.TickWidth, yc)
 		}
@@ -83,8 +85,7 @@ func (bars *OHLCBars) Plot(c draw.Canvas, plt *plot.Plot) {
 	}
 }
 
-// DataRange implements the DataRange method
-// of the plot.DataRanger interface.
+// DataRange реализует метод DataRange интерфейса plot.DataRanger.
 func (bars *OHLCBars) DataRange() (xmin, xmax, ymin, ymax float64) {
 	xmin = math.Inf(1)
 	xmax = math.Inf(-1)
@@ -99,8 +100,7 @@ func (bars *OHLCBars) DataRange() (xmin, xmax, ymin, ymax float64) {
 	return
 }
 
-// GlyphBoxes implements the GlyphBoxes method
-// of the plot.GlyphBoxer interface.
+// GlyphBoxes реализует метод GlyphBoxes интерфейса plot.GlyphBoxer.
 func (bars *OHLCBars) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 	boxes := make([]plot.GlyphBox, 2)
 

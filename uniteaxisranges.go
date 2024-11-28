@@ -3,23 +3,34 @@ package library
 import (
 	"math"
 
+	"candlestick-Go-Library/logger"
 	"gonum.org/v1/plot"
 )
 
-// UniteAxisRanges sets the range of all axes to the minimum and the maximum of all axes.
-func UniteAxisRanges(axes []*plot.Axis) {
-	minRange := math.MaxFloat64
-	maxRange := -math.MaxFloat64
+// AlignAxisRanges приводит диапазоны всех осей к общему минимальному и максимальному значению.
+func AlignAxisRanges(axes []*plot.Axis) {
+	log := logger.CreateLogger() // Создание логгера
 
-	for _, axis := range axes {
-		minRange = math.Min(axis.Min, minRange)
-		maxRange = math.Max(axis.Max, maxRange)
+	if len(axes) == 0 {
+		log.Warn("Передан пустой список осей, выравнивание не выполнено")
+		return
 	}
 
+	commonMin := math.MaxFloat64
+	commonMax := -math.MaxFloat64
+
+	// Находим общий минимальный и максимальный диапазон.
 	for _, axis := range axes {
-		axis.Min = minRange
-		axis.Max = maxRange
+		commonMin = math.Min(axis.Min, commonMin)
+		commonMax = math.Max(axis.Max, commonMax)
 	}
 
-	return
+	// Устанавливаем общий диапазон для всех осей.
+	for _, axis := range axes {
+		axis.Min = commonMin
+		axis.Max = commonMax
+		log.Infof("Диапазон оси изменён: Min=%.2f, Max=%.2f", axis.Min, axis.Max)
+	}
+
+	log.Info("Выравнивание диапазонов осей выполнено успешно")
 }

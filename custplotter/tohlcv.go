@@ -26,9 +26,13 @@ func (md MarketData) DataAt(index int) (float64, float64, float64, float64, floa
 
 // CloneMarketData копирует данные из реализации интерфейса MarketDataProvider.
 func CloneMarketData(source MarketDataProvider) (MarketData, error) {
+	// Создаем новый срез для клонированных данных.
 	clone := make(MarketData, source.Count())
 	for i := range clone {
+		// Копируем данные из источника.
 		clone[i].Time, clone[i].Open, clone[i].High, clone[i].Low, clone[i].Close, clone[i].Volume = source.DataAt(i)
+
+		// Проверяем, что все значения являются корректными числами.
 		if err := plotter.CheckFloats(clone[i].Open, clone[i].High, clone[i].Low, clone[i].Close, clone[i].Volume); err != nil {
 			return nil, err
 		}

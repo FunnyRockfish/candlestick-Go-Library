@@ -8,7 +8,7 @@ import (
 	"candlestick-Go-Library/custplotter"
 )
 
-// CreateTOHLCVExampleData generates and returns some artificial TOHLCV data for testing and demo purpose
+// CreateTOHLCVExampleData генерирует и возвращает искусственные данные TOHLCV для тестирования и демонстрации.
 func CreateTOHLCVExampleData(n int) custplotter.MarketData {
 	rnd := rand.New(rand.NewSource(1))
 	m := 4 * n
@@ -41,7 +41,7 @@ func CreateTOHLCVExampleData(n int) custplotter.MarketData {
 		data[i].Low = math.Min(math.Min(fract[4*i], fract[4*i+1]), math.Min(fract[4*i+2], fract[4*i+3]))
 		data[i].Close = fract[4*i+3]
 
-		data[i].Volume = (data[i].High - data[i].Low + math.Abs(data[i].Close-data[i].Open)) * 100 // just use this as a fake volume
+		data[i].Volume = (data[i].High - data[i].Low + math.Abs(data[i].Close-data[i].Open)) * 100
 	}
 	return data
 }
