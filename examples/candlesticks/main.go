@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 
+	"candlestick-Go-Library/custplotter"
+	"candlestick-Go-Library/examples"
 	"gonum.org/v1/plot"
-	"testPlotextLib/library/custplotter"
-	"testPlotextLib/library/examples"
 )
 
 func main() {

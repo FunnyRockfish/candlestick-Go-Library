@@ -4,9 +4,9 @@ import (
 	"log"
 	"testing"
 
+	"candlestick-Go-Library/custplotter"
+	"candlestick-Go-Library/custplotter/internal"
 	"gonum.org/v1/plot"
-	"testPlotextLib/library/custplotter"
-	"testPlotextLib/library/custplotter/internal"
 )
 
 func TestNewOHLCBars(t *testing.T) {
@@ -24,7 +24,7 @@ func TestNewOHLCBars(t *testing.T) {
 	p.Add(bars)
 
 	testFile := "testdata/ohlcbars.png"
-	err = p.Save(180, 100, testFile)
+	err = p.Save(1180, 200, testFile)
 	if err != nil {
 		log.Panic(err)
 	}

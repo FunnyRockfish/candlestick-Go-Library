@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"testPlotextLib/library/custplotter"
-	"testPlotextLib/library/examples"
+	"candlestick-Go-Library/custplotter"
+	"candlestick-Go-Library/examples"
 )
 
 func CreateTOHLCVTestData() custplotter.TOHLCVs {

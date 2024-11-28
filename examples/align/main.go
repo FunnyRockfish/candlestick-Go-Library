@@ -5,12 +5,12 @@ import (
 	"os"
 	"time"
 
+	"candlestick-Go-Library"
+	"candlestick-Go-Library/custplotter"
+	"candlestick-Go-Library/examples"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/vg/draw"
 	"gonum.org/v1/plot/vg/vgimg"
-	"testPlotextLib/library"
-	"testPlotextLib/library/custplotter"
-	"testPlotextLib/library/examples"
 )
 
 type CustomTimeTicks struct {

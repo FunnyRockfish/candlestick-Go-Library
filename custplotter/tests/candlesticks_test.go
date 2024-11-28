@@ -4,9 +4,9 @@ import (
 	"log"
 	"testing"
 
+	"candlestick-Go-Library/custplotter"
+	"candlestick-Go-Library/custplotter/internal"
 	"gonum.org/v1/plot"
-	"testPlotextLib/library/custplotter"
-	"testPlotextLib/library/custplotter/internal"
 )
 
 func TestNewCandlesticks(t *testing.T) {

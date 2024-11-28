@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"testPlotextLib/library/custplotter"
+	"candlestick-Go-Library/custplotter"
 )
 
 // CreateTOHLCVExampleData generates and returns some artificial TOHLCV data for testing and demo purpose
