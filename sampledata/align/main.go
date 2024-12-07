@@ -1,96 +1,97 @@
 package main
 
 import (
-	"log"
 	"os"
 	"time"
 
-	"candlestick-Go-Library"
-	"candlestick-Go-Library/customplot"
-	"candlestick-Go-Library/sampledata"
+	candlestickLib "candlestick-Go-Library"
+	customPlotLib "candlestick-Go-Library/customplot"
+	"candlestick-Go-Library/logger"
+	sampleDataLib "candlestick-Go-Library/sampledata"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/vg/draw"
 	"gonum.org/v1/plot/vg/vgimg"
 )
 
-type CustomTimeTicks struct {
-	Format string
-	Step   time.Duration
+type TimeFormatter struct {
+	Layout   string
+	Interval time.Duration
 }
 
-func (ctt CustomTimeTicks) Ticks(min, max float64) []plot.Tick {
-	tMin := time.Unix(int64(min), 0)
-	tMax := time.Unix(int64(max), 0)
+func (tf TimeFormatter) Ticks(minVal, maxVal float64) []plot.Tick {
+	startTime := time.Unix(int64(minVal), 0)
+	endTime := time.Unix(int64(maxVal), 0)
 
-	var ticks []plot.Tick
-	for t := tMin; t.Before(tMax); t = t.Add(ctt.Step) {
-		ticks = append(ticks, plot.Tick{
-			Value: float64(t.Unix()),
-			Label: t.Format(ctt.Format),
+	var tickMarks []plot.Tick
+	for current := startTime; current.Before(endTime); current = current.Add(tf.Interval) {
+		tickMarks = append(tickMarks, plot.Tick{
+			Value: float64(current.Unix()),
+			Label: current.Format(tf.Layout),
 		})
 	}
-	return ticks
+	return tickMarks
 }
 
 func main() {
-	n := 300
-	fakeTOHLCVs := sampledata.GenerateCandlestickData(n)
+	log := logger.CreateLogger()
+	dataPoints := 50
+	ohlcvData := sampleDataLib.GenerateCandlestickData(dataPoints)
 
-	p1 := plot.New()
-
-	p1.Title.Text = "Candlesticks and Volume Bars"
-	p1.Y.Label.Text = "Price"
-	p1.X.Tick.Marker = CustomTimeTicks{
-		Format: "2006-01-02\n15:04:05",
-		Step:   1 * time.Hour, // например: метка каждый час
+	mainPlot := plot.New()
+	mainPlot.Title.Text = "Канделябры и Объёмные Барры"
+	mainPlot.Y.Label.Text = "Цена"
+	mainPlot.X.Tick.Marker = TimeFormatter{
+		Layout:   "2006-01-02\n15:04:05",
+		Interval: time.Hour, // например: метка каждый час
 	}
 
-	candlesticks, err := customplot.BuildCandlestickSeries(fakeTOHLCVs)
+	candles, err := customPlotLib.NewCandleStick(ohlcvData)
 	if err != nil {
-		log.Panic(err)
+		log.Error("Ошибка при создании свечей: ", err)
 	}
 
-	p1.Add(candlesticks)
-	p2 := plot.New()
+	mainPlot.Add(candles)
 
-	p2.X.Label.Text = "Time"
-	p2.Y.Label.Text = "Volume"
-	p2.X.Tick.Marker = CustomTimeTicks{
-		Format: "2006-01-02\n15:04:05",
-		Step:   1 * time.Hour, // например: метка каждый час
+	volumePlot := plot.New()
+	volumePlot.X.Label.Text = "Время"
+	volumePlot.Y.Label.Text = "Объём"
+	volumePlot.X.Tick.Marker = TimeFormatter{
+		Layout:   "2006-01-02\n15:04:05",
+		Interval: time.Hour, // например: метка каждый час
 	}
 
-	vBars, err := customplot.CreateVolumeBars(fakeTOHLCVs)
+	volumes, err := customPlotLib.InitializeVolumeBars(ohlcvData)
 	if err != nil {
-		log.Panic(err)
+		log.Error("Ошибка при инициализации объёмов: ", err)
 	}
 
-	p2.Add(vBars)
+	volumePlot.Add(volumes)
 
-	library.AlignAxisRanges([]*plot.Axis{&p1.X, &p2.X})
+	candlestickLib.AlignAxisRanges([]*plot.Axis{&mainPlot.X, &volumePlot.X})
 
-	table := library.GridLayout{
+	layout := candlestickLib.GridLayout{
 		RowSizes:    []float64{2, 1}, // 2/3
 		ColumnSizes: []float64{1},
 	}
 
-	plots := [][]*plot.Plot{{p1}, {p2}}
+	plotCollection := [][]*plot.Plot{{mainPlot}, {volumePlot}}
 
-	img := vgimg.New(2250, 300)
-	dc := draw.New(img)
+	imageCanvas := vgimg.New(2250, 300)
+	drawingContext := draw.New(imageCanvas)
 
-	canvases := table.AlignCanvases(plots, dc)
-	plots[0][0].Draw(canvases[0][0])
-	plots[1][0].Draw(canvases[1][0])
+	alignedCanvases := layout.AlignCanvases(plotCollection, drawingContext)
+	plotCollection[0][0].Draw(alignedCanvases[0][0])
+	plotCollection[1][0].Draw(alignedCanvases[1][0])
 
-	testFile := "align.png"
-	w, err := os.Create(testFile)
+	outputFile := "output_chart.png"
+	fileHandle, err := os.Create(outputFile)
 	if err != nil {
-		panic(err)
+		log.Error("Не удалось создать файл: ", err)
 	}
+	defer fileHandle.Close()
 
-	png := vgimg.PngCanvas{Canvas: img}
-	if _, err := png.WriteTo(w); err != nil {
-		panic(err)
+	pngCanvas := vgimg.PngCanvas{Canvas: imageCanvas}
+	if _, err = pngCanvas.WriteTo(fileHandle); err != nil {
+		log.Error("Ошибка при записи изображения: ", err)
 	}
 }

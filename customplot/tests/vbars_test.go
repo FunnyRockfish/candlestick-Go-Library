@@ -20,7 +20,7 @@ func TestNewVBars(t *testing.T) {
 	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
 	log.Info("Creating vertical bars")
-	bars, err := customplot.CreateVolumeBars(testData)
+	bars, err := customplot.InitializeVolumeBars(testData)
 	if err != nil {
 		log.Errorf("Failed to create vertical bars: %v", err)
 		t.FailNow()

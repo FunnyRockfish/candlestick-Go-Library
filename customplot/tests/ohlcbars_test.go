@@ -20,7 +20,7 @@ func TestNewOHLCBars(t *testing.T) {
 	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
 	log.Info("Creating OHLC bars")
-	bars, err := customplot.CreateOHLCPlot(testData)
+	bars, err := customplot.InitializePriceBars(testData)
 	if err != nil {
 		log.Errorf("Failed to create OHLC bars: %v", err)
 		t.FailNow()

@@ -10,125 +10,140 @@ import (
 	"gonum.org/v1/plot/vg/draw"
 )
 
-// DefaultCandleWidthFactor задаёт ширину свечи относительно DefaultLineStyle.Width.
-var DefaultCandleWidthFactor = 3
+// CandleWidthMultiplier sets the candle width relative to the DefaultLineStyle.Width.
+var CandleWidthMultiplier = 3
 
 var (
-	DefaultColorUp   = color.RGBA{R: 128, G: 192, B: 128, A: 255} // Зеленый
-	DefaultColorDown = color.RGBA{R: 255, G: 128, B: 128, A: 255} // Красный
+	DefaultUpColor   = color.RGBA{R: 128, G: 192, B: 128, A: 255} // Green
+	DefaultDownColor = color.RGBA{R: 255, G: 128, B: 128, A: 255} // Red
 	DefaultLineStyle = plotter.DefaultLineStyle
 )
 
-// Candlesticks реализует интерфейс Plotter, создавая
-// столбчатую диаграмму из кортежей time, open, high, low, close.
-type Candlesticks struct {
-	MarketData MarketData
+// CandleStick represents a candlestick plotter implementing plot.Plotter.
+type CandleStick struct {
+	DataProvider MarketData
 
-	// ColorUp — цвет свечей, где C >= O.
-	ColorUp color.Color
+	// UpColor is the color for candles where Close >= Open.
+	UpColor color.Color
 
-	// ColorDown — цвет свечей, где C < O.
-	ColorDown color.Color
+	// DownColor is the color for candles where Close < Open.
+	DownColor color.Color
 
-	// LineStyle — стиль линий для рисования свечей.
+	// LineStyle defines the style of the lines used to draw candles.
 	draw.LineStyle
 
-	// CandleWidth — ширина свечи.
+	// CandleWidth defines the width of each candle.
 	CandleWidth vg.Length
 
-	// FixedLineColor указывает, использовать ли фиксированный цвет линий для восходящих и нисходящих свечей.
+	// FixedLineColor determines if a fixed color is used for all candle lines.
 	FixedLineColor bool
 }
 
-// BuildCandlestickSeries создаёт новый объект для рисования свечей
-// на основе предоставленных данных.
-func BuildCandlestickSeries(data MarketDataProvider) (*Candlesticks, error) {
-	cpy, err := CloneMarketData(data)
+// NewCandleStick initializes a CandleStick with the provided market data.
+func NewCandleStick(data MarketDataProvider) (*CandleStick, error) {
+	cloneData, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Candlesticks{
-		MarketData:     cpy,
+	return &CandleStick{
+		DataProvider:   cloneData,
 		FixedLineColor: true,
-		ColorUp:        DefaultColorUp,
-		ColorDown:      DefaultColorDown,
+		UpColor:        DefaultUpColor,
+		DownColor:      DefaultDownColor,
 		LineStyle:      DefaultLineStyle,
-		CandleWidth:    vg.Length(DefaultCandleWidthFactor) * plotter.DefaultLineStyle.Width,
+		CandleWidth:    vg.Length(CandleWidthMultiplier) * plotter.DefaultLineStyle.Width,
 	}, nil
 }
 
-// Plot реализует метод Plot интерфейса plot.Plotter.
-func (sticks *Candlesticks) Plot(c draw.Canvas, plt *plot.Plot) {
-	trX, trY := plt.Transforms(&c)
-	lineStyle := sticks.LineStyle
+// Plot renders the candlestick chart on the given canvas and plot.
+func (cs *CandleStick) Plot(cnv draw.Canvas, plt *plot.Plot) {
+	transformX, transformY := plt.Transforms(&cnv)
+	currentStyle := cs.LineStyle
 
-	for _, TOHLCV := range sticks.MarketData {
+	for _, record := range cs.DataProvider {
 		var fillColor color.Color
-		if TOHLCV.Close >= TOHLCV.Open {
-			fillColor = sticks.ColorUp
+		if record.Close >= record.Open {
+			fillColor = cs.UpColor
 		} else {
-			fillColor = sticks.ColorDown
+			fillColor = cs.DownColor
 		}
 
-		if !sticks.FixedLineColor {
-			lineStyle.Color = fillColor
+		if !cs.FixedLineColor {
+			currentStyle.Color = fillColor
 		}
 
-		// Преобразование данных в соответствующие координаты на холсте.
-		x := trX(TOHLCV.Time)
-		yh := trY(TOHLCV.High)
-		yl := trY(TOHLCV.Low)
-		ymaxoc := trY(math.Max(TOHLCV.Open, TOHLCV.Close))
-		yminoc := trY(math.Min(TOHLCV.Open, TOHLCV.Close))
+		// Convert data points to canvas coordinates.
+		xPos := transformX(record.Time)
+		highY := transformY(record.High)
+		lowY := transformY(record.Low)
+		topY := transformY(math.Max(record.Open, record.Close))
+		bottomY := transformY(math.Min(record.Open, record.Close))
 
-		// Верхняя линия
-		line := c.ClipLinesY([]vg.Point{{x, yh}, {x, ymaxoc}})
-		c.StrokeLines(lineStyle, line...)
+		// Draw the upper wick.
+		upperWick := cnv.ClipLinesY([]vg.Point{{xPos, highY}, {xPos, topY}})
+		cnv.StrokeLines(currentStyle, upperWick...)
 
-		// Нижняя линия
-		line = c.ClipLinesY([]vg.Point{{x, yl}, {x, yminoc}})
-		c.StrokeLines(lineStyle, line...)
+		// Draw the lower wick.
+		lowerWick := cnv.ClipLinesY([]vg.Point{{xPos, lowY}, {xPos, bottomY}})
+		cnv.StrokeLines(currentStyle, lowerWick...)
 
-		poly := c.ClipPolygonY([]vg.Point{{x - sticks.CandleWidth/2, ymaxoc}, {x + sticks.CandleWidth/2, ymaxoc}, {x + sticks.CandleWidth/2, yminoc}, {x - sticks.CandleWidth/2, yminoc}, {x - sticks.CandleWidth/2, ymaxoc}})
-		c.FillPolygon(fillColor, poly)
-		c.StrokeLines(lineStyle, poly)
+		// Draw the candle body.
+		body := cnv.ClipPolygonY([]vg.Point{
+			{xPos - cs.CandleWidth/2, topY},
+			{xPos + cs.CandleWidth/2, topY},
+			{xPos + cs.CandleWidth/2, bottomY},
+			{xPos - cs.CandleWidth/2, bottomY},
+			{xPos - cs.CandleWidth/2, topY},
+		})
+		cnv.FillPolygon(fillColor, body)
+		cnv.StrokeLines(currentStyle, body)
 	}
 }
 
-// DataRange реализует метод DataRange интерфейса plot.DataRanger.
-func (sticks *Candlesticks) DataRange() (xMin, xMax, yMin, yMax float64) {
-	xMin = math.Inf(1)
-	xMax = math.Inf(-1)
-	yMin = math.Inf(1)
-	yMax = math.Inf(-1)
-	for _, TOHLCV := range sticks.MarketData {
-		xMin = math.Min(xMin, TOHLCV.Time)
-		xMax = math.Max(xMax, TOHLCV.Time)
-		yMin = math.Min(yMin, TOHLCV.Low)
-		yMax = math.Max(yMax, TOHLCV.High)
+// DataRange computes the data boundaries for the candlestick plot.
+func (cs *CandleStick) DataRange() (minX, maxX, minY, maxY float64) {
+	minX = math.Inf(1)
+	maxX = math.Inf(-1)
+	minY = math.Inf(1)
+	maxY = math.Inf(-1)
+
+	for _, record := range cs.DataProvider {
+		if record.Time < minX {
+			minX = record.Time
+		}
+		if record.Time > maxX {
+			maxX = record.Time
+		}
+		if record.Low < minY {
+			minY = record.Low
+		}
+		if record.High > maxY {
+			maxY = record.High
+		}
 	}
+
 	return
 }
 
-// GlyphBoxes реализует метод GlyphBoxes интерфейса plot.GlyphBoxer.
-func (sticks *Candlesticks) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
+// GlyphBoxes provides the bounding boxes for glyphs in the plot.
+func (cs *CandleStick) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 	boxes := make([]plot.GlyphBox, 2)
 
-	xmin, xmax, ymin, ymax := sticks.DataRange()
+	minX, maxX, minY, maxY := cs.DataRange()
 
-	boxes[0].X = plt.X.Norm(xmin)
-	boxes[0].Y = plt.Y.Norm(ymin)
+	boxes[0].X = plt.X.Norm(minX)
+	boxes[0].Y = plt.Y.Norm(minY)
 	boxes[0].Rectangle = vg.Rectangle{
-		Min: vg.Point{X: -(sticks.CandleWidth + sticks.LineStyle.Width) / 2, Y: 0},
+		Min: vg.Point{X: -(cs.CandleWidth + cs.LineStyle.Width) / 2, Y: 0},
 		Max: vg.Point{X: 0, Y: 0},
 	}
 
-	boxes[1].X = plt.X.Norm(xmax)
-	boxes[1].Y = plt.Y.Norm(ymax)
+	boxes[1].X = plt.X.Norm(maxX)
+	boxes[1].Y = plt.Y.Norm(maxY)
 	boxes[1].Rectangle = vg.Rectangle{
 		Min: vg.Point{X: 0, Y: 0},
-		Max: vg.Point{X: +(sticks.CandleWidth + sticks.LineStyle.Width) / 2, Y: 0},
+		Max: vg.Point{X: (cs.CandleWidth + cs.LineStyle.Width) / 2, Y: 0},
 	}
 
 	return boxes

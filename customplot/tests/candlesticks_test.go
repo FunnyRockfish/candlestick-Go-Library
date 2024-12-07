@@ -20,7 +20,7 @@ func TestNewCandlesticks(t *testing.T) {
 	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
 	log.Info("Creating candlestick bars")
-	bars, err := customplot.BuildCandlestickSeries(testData)
+	bars, err := customplot.NewCandleStick(testData)
 	if err != nil {
 		log.Errorf("Failed to create candlestick bars: %v", err)
 		t.FailNow()

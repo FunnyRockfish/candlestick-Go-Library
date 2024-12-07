@@ -19,7 +19,7 @@ func main() {
 	plotInstance.Y.Label.Text = "Value"
 	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04"}
 
-	ohlcPlot, err := customplot.CreateOHLCPlot(mockData)
+	ohlcPlot, err := customplot.InitializePriceBars(mockData)
 	if err != nil {
 		log.Fatalf("Failed to create OHLC plot: %v", err)
 	}

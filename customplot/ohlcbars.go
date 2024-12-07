@@ -10,114 +10,114 @@ import (
 	"gonum.org/v1/plot/vg/draw"
 )
 
-// DefaultTickWidth задаёт ширину отметок open и close.
-var DefaultTickWidth = vg.Points(2)
+// DefaultTickSize defines the length of the open and close ticks.
+var DefaultTickSize = vg.Points(2)
 
-// OHLCBars реализует интерфейс Plotter, создавая
-// столбчатую диаграмму из кортежей time, open, high, low, close.
-type OHLCBars struct {
-	MarketData
+// PriceBars implements the plot.Plotter interface, generating
+// a bar chart from time, open, high, low, close data points.
+type PriceBars struct {
+	MarketData MarketData
 
-	// ColorUp — цвет столбцов, где C >= O.
-	ColorUp color.Color
+	// PositiveColor is the color for bars where Close >= Open.
+	PositiveColor color.Color
 
-	// ColorDown — цвет столбцов, где C < O.
-	ColorDown color.Color
+	// NegativeColor is the color for bars where Close < Open.
+	NegativeColor color.Color
 
-	// LineStyle — стиль линий для рисования столбцов.
+	// LineStyle specifies the styling for the bar lines.
 	draw.LineStyle
 
-	// TickWidth — ширина отметок, рисуемых сверху
-	// и снизу каждой полосы ошибки.
-	TickWidth vg.Length
+	// TickSize determines the size of ticks at the open and close points.
+	TickSize vg.Length
 }
 
-// CreateOHLCPlot создаёт новый объект для
-// построения диаграммы столбцов на основе предоставленных данных.
-func CreateOHLCPlot(data MarketDataProvider) (*OHLCBars, error) {
-	cpy, err := CloneMarketData(data)
+// InitializePriceBars creates a new PriceBars instance using the provided market data.
+func InitializePriceBars(data MarketDataProvider) (*PriceBars, error) {
+	clonedData, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	return &OHLCBars{
-		MarketData: cpy,
-		ColorUp:    color.RGBA{R: 0, G: 128, B: 0, A: 255}, // Зелёный цвет более заметен для глаза.
-		ColorDown:  color.RGBA{R: 196, G: 0, B: 0, A: 255},
-		LineStyle:  plotter.DefaultLineStyle,
-		TickWidth:  DefaultTickWidth,
+	return &PriceBars{
+		MarketData:    clonedData,
+		PositiveColor: color.RGBA{R: 0, G: 128, B: 0, A: 255}, // Green for positive movement.
+		NegativeColor: color.RGBA{R: 196, G: 0, B: 0, A: 255}, // Red for negative movement.
+		LineStyle:     plotter.DefaultLineStyle,
+		TickSize:      DefaultTickSize,
 	}, nil
 }
 
-// Plot реализует метод Plot интерфейса plot.Plotter.
-func (bars *OHLCBars) Plot(c draw.Canvas, plt *plot.Plot) {
-	trX, trY := plt.Transforms(&c)
-	lineStyle := bars.LineStyle
+// Plot renders the price bars on the given canvas and plot.
+func (pb *PriceBars) Plot(cnv draw.Canvas, plt *plot.Plot) {
+	transformX, transformY := plt.Transforms(&cnv)
+	currentStyle := pb.LineStyle
 
-	for _, TOHLCV := range bars.MarketData {
-		if TOHLCV.Close >= TOHLCV.Open {
-			lineStyle.Color = bars.ColorUp
+	for _, record := range pb.MarketData {
+		// Set the line color based on price movement.
+		if record.Close >= record.Open {
+			currentStyle.Color = pb.PositiveColor
 		} else {
-			lineStyle.Color = bars.ColorDown
+			currentStyle.Color = pb.NegativeColor
 		}
 
-		// Преобразование данных в соответствующие координаты для рисования.
-		x := trX(TOHLCV.Time)
-		yo := trY(TOHLCV.Open)
-		yh := trY(TOHLCV.High)
-		yl := trY(TOHLCV.Low)
-		yc := trY(TOHLCV.Close)
+		// Convert data points to canvas coordinates.
+		xPos := transformX(record.Time)
+		openY := transformY(record.Open)
+		highY := transformY(record.High)
+		lowY := transformY(record.Low)
+		closeY := transformY(record.Close)
 
-		// Рисование вертикальной полосы (high-low).
-		bar := c.ClipLinesY([]vg.Point{{x, yl}, {x, yh}})
-		c.StrokeLines(lineStyle, bar...)
+		// Draw the high-low vertical line.
+		verticalLine := cnv.ClipLinesY([]vg.Point{{xPos, lowY}, {xPos, highY}})
+		cnv.StrokeLines(currentStyle, verticalLine...)
 
-		// Рисование отметки для open.
-		if c.Contains(vg.Point{X: x, Y: yo}) {
-			c.StrokeLine2(lineStyle, x, yo, x-bars.TickWidth, yo)
+		// Draw the open tick.
+		if cnv.Contains(vg.Point{X: xPos, Y: openY}) {
+			cnv.StrokeLine2(currentStyle, xPos, openY, xPos-pb.TickSize, openY)
 		}
 
-		// Рисование отметки для close.
-		if c.Contains(vg.Point{X: x, Y: yc}) {
-			c.StrokeLine2(lineStyle, x, yc, x+bars.TickWidth, yc)
+		// Draw the close tick.
+		if cnv.Contains(vg.Point{X: xPos, Y: closeY}) {
+			cnv.StrokeLine2(currentStyle, xPos, closeY, xPos+pb.TickSize, closeY)
 		}
-
 	}
 }
 
-// DataRange реализует метод DataRange интерфейса plot.DataRanger.
-func (bars *OHLCBars) DataRange() (xmin, xmax, ymin, ymax float64) {
-	xmin = math.Inf(1)
-	xmax = math.Inf(-1)
-	ymin = math.Inf(1)
-	ymax = math.Inf(-1)
-	for _, TOHLCV := range bars.MarketData {
-		xmin = math.Min(xmin, TOHLCV.Time)
-		xmax = math.Max(xmax, TOHLCV.Time)
-		ymin = math.Min(ymin, TOHLCV.Low)
-		ymax = math.Max(ymax, TOHLCV.High)
+// DataRange calculates the boundaries of the data for scaling the plot.
+func (pb *PriceBars) DataRange() (minX, maxX, minY, maxY float64) {
+	minX = math.Inf(1)
+	maxX = math.Inf(-1)
+	minY = math.Inf(1)
+	maxY = math.Inf(-1)
+
+	for _, record := range pb.MarketData {
+		minX = math.Min(minX, record.Time)
+		maxX = math.Max(maxX, record.Time)
+		minY = math.Min(minY, record.Low)
+		maxY = math.Max(maxY, record.High)
 	}
+
 	return
 }
 
-// GlyphBoxes реализует метод GlyphBoxes интерфейса plot.GlyphBoxer.
-func (bars *OHLCBars) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
+// GlyphBoxes provides bounding boxes for glyphs in the plot.
+func (pb *PriceBars) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 	boxes := make([]plot.GlyphBox, 2)
 
-	xmin, xmax, ymin, ymax := bars.DataRange()
+	minX, maxX, minY, maxY := pb.DataRange()
 
-	boxes[0].X = plt.X.Norm(xmin)
-	boxes[0].Y = plt.Y.Norm(ymin)
+	boxes[0].X = plt.X.Norm(minX)
+	boxes[0].Y = plt.Y.Norm(minY)
 	boxes[0].Rectangle = vg.Rectangle{
-		Min: vg.Point{X: -bars.TickWidth},
+		Min: vg.Point{X: -pb.TickSize},
 		Max: vg.Point{},
 	}
 
-	boxes[1].X = plt.X.Norm(xmax)
-	boxes[1].Y = plt.Y.Norm(ymax)
+	boxes[1].X = plt.X.Norm(maxX)
+	boxes[1].Y = plt.Y.Norm(maxY)
 	boxes[1].Rectangle = vg.Rectangle{
 		Min: vg.Point{},
-		Max: vg.Point{X: +bars.TickWidth},
+		Max: vg.Point{X: +pb.TickSize},
 	}
 
 	return boxes

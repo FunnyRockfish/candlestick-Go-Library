@@ -8,40 +8,51 @@ import (
 	"candlestick-Go-Library/customplot"
 )
 
-// GenerateCandlestickData генерирует и возвращает искусственные данные TOHLCV для тестирования и демонстрации.
-func GenerateCandlestickData(n int) customplot.MarketData {
-	rnd := rand.New(rand.NewSource(1))
-	m := 4 * n
-	fract := make([]float64, m)
-	for i := 0; i < m; i++ {
-		fract[i] = 100
+// GenerateCandlestickData создает и возвращает сгенерированные данные TOHLCV для целей тестирования и демонстрации.
+func GenerateCandlestickData(count int) customplot.MarketData {
+	seededRand := rand.New(rand.NewSource(1))
+	totalElements := 4 * count
+	priceSeries := make([]float64, totalElements)
+
+	// Инициализация базовой цены
+	for idx := 0; idx < totalElements; idx++ {
+		priceSeries[idx] = 100
 	}
-	stat1 := 0.0
-	stat2 := 0.0
-	for k := m; k > 0; k = k / 2 {
-		j := 0
-		for i := 0; i < m; i++ {
-			if j == 0 {
-				j = k
-				stat2 = stat1
-				stat1 = 10.0 * (float64(k)/float64(m) + 0.02) * (2.0*rnd.Float64() - 1.0)
+
+	var previousStat, currentStat float64
+
+	// Генерация флуктуаций цен
+	for step := totalElements; step > 0; step /= 2 {
+		temp := 0
+		for i := 0; i < totalElements; i++ {
+			if temp == 0 {
+				temp = step
+				previousStat = currentStat
+				currentStat = 10.0 * (float64(step)/float64(totalElements) + 0.02) * (2.0*seededRand.Float64() - 1.0)
 			}
-			fract[i] += float64(k-j)/float64(k)*stat1 + float64(j)/float64(k)*stat2
-			j--
+			priceSeries[i] += float64(step-temp)/float64(step)*currentStat + float64(temp)/float64(step)*previousStat
+			temp--
 		}
 	}
 
-	data := make(customplot.MarketData, n)
+	ohlcv := make(customplot.MarketData, count)
 
-	loc, _ := time.LoadLocation("America/New_York")
-	for i := range data {
-		data[i].Time = float64(time.Date(2024, 10, 30, 03, 04, 05, 0, loc).Add(time.Duration(i) * time.Minute).Unix())
-		data[i].Open = fract[4*i]
-		data[i].High = math.Max(math.Max(fract[4*i], fract[4*i+1]), math.Max(fract[4*i+2], fract[4*i+3]))
-		data[i].Low = math.Min(math.Min(fract[4*i], fract[4*i+1]), math.Min(fract[4*i+2], fract[4*i+3]))
-		data[i].Close = fract[4*i+3]
+	nyLocation, _ := time.LoadLocation("America/New_York")
+	baseTime := time.Date(2024, 10, 30, 3, 4, 5, 0, nyLocation)
 
-		data[i].Volume = (data[i].High - data[i].Low + math.Abs(data[i].Close-data[i].Open)) * 100
+	for idx := range ohlcv {
+		timestamp := baseTime.Add(time.Duration(idx) * time.Minute).Unix()
+		ohlcv[idx].Time = float64(timestamp)
+		ohlcv[idx].Open = priceSeries[4*idx]
+		ohlcv[idx].High = math.Max(math.Max(priceSeries[4*idx], priceSeries[4*idx+1]),
+			math.Max(priceSeries[4*idx+2], priceSeries[4*idx+3]))
+		ohlcv[idx].Low = math.Min(math.Min(priceSeries[4*idx], priceSeries[4*idx+1]),
+			math.Min(priceSeries[4*idx+2], priceSeries[4*idx+3]))
+		ohlcv[idx].Close = priceSeries[4*idx+3]
+
+		// Расчет объема как функция ценовых колебаний
+		ohlcv[idx].Volume = (ohlcv[idx].High - ohlcv[idx].Low + math.Abs(ohlcv[idx].Close-ohlcv[idx].Open)) * 100
 	}
-	return data
+
+	return ohlcv
 }

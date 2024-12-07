@@ -19,7 +19,7 @@ func main() {
 	volumePlot.Y.Label.Text = "Shares"
 	volumePlot.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04"}
 
-	barPlot, err := customplot.CreateVolumeBars(mockVolumeData)
+	barPlot, err := customplot.InitializeVolumeBars(mockVolumeData)
 	if err != nil {
 		log.Fatalf("Error creating volume bars: %v", err)
 	}

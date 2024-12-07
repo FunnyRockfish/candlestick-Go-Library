@@ -10,103 +10,118 @@ import (
 	"gonum.org/v1/plot/vg/draw"
 )
 
-// VBars реализует интерфейс Plotter, создавая
-// столбчатую диаграмму объёма.
-type VBars struct {
-	MarketData
+// VolumeBars реализует интерфейс Plotter, создавая
+// диаграмму объёма торгов.
+type VolumeBars struct {
+	MarketData MarketData
 
-	// ColorUp — цвет столбцов, где C >= O.
-	ColorUp color.Color
+	// PositiveColor — цвет столбцов, где C >= O.
+	PositiveColor color.Color
 
-	// ColorDown — цвет столбцов, где C < O.
-	ColorDown color.Color
+	// NegativeColor — цвет столбцов, где C < O.
+	NegativeColor color.Color
 
-	// LineStyle — стиль линий для рисования столбцов.
+	// LineStyle — стиль линий для отображения столбцов.
 	draw.LineStyle
+
+	// TickSize — размер отметок для открытия и закрытия.
+	TickSize vg.Length
 }
 
-// CreateVolumeBars создаёт новый объект для построения
-// столбчатой диаграммы на основе предоставленных данных.
-func CreateVolumeBars(data MarketDataProvider) (*VBars, error) {
-	cpy, err := CloneMarketData(data)
+// InitializeVolumeBars создаёт новый экземпляр VolumeBars на основе предоставленных данных.
+func InitializeVolumeBars(data MarketDataProvider) (*VolumeBars, error) {
+	clonedData, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	// Определяем минимальное значение DeltaT.
-	minDeltaT := 0.0
-	if len(cpy) > 1 {
-		minDeltaT = math.MaxFloat64
-		for i := 0; i < len(cpy)-1; i++ {
-			minDeltaT = math.Min(minDeltaT, cpy[i+1].Time-cpy[i].Time)
+	// Определяем минимальный интервал времени между записями.
+	minInterval := 0.0
+	if len(clonedData) > 1 {
+		minInterval = math.MaxFloat64
+		for i := 0; i < len(clonedData)-1; i++ {
+			interval := clonedData[i+1].Time - clonedData[i].Time
+			if interval < minInterval {
+				minInterval = interval
+			}
 		}
 	}
 
-	return &VBars{
-		MarketData: cpy,
-		ColorUp:    color.RGBA{R: 0, G: 128, B: 0, A: 255}, // Зелёный цвет более заметен для глаза.
-		ColorDown:  color.RGBA{R: 196, G: 0, B: 0, A: 255},
-		LineStyle:  plotter.DefaultLineStyle,
+	return &VolumeBars{
+		MarketData:    clonedData,
+		PositiveColor: color.RGBA{R: 0, G: 128, B: 0, A: 255}, // Ярко-зелёный для роста.
+		NegativeColor: color.RGBA{R: 196, G: 0, B: 0, A: 255}, // Ярко-красный для падения.
+		LineStyle:     plotter.DefaultLineStyle,
+		TickSize:      DefaultTickSize,
 	}, nil
 }
 
-// Plot реализует метод Plot интерфейса plot.Plotter.
-func (bars *VBars) Plot(c draw.Canvas, plt *plot.Plot) {
-	trX, trY := plt.Transforms(&c)
-	lineStyle := bars.LineStyle
+// Plot отображает диаграмму объёма на заданном холсте и графике.
+func (vb *VolumeBars) Plot(canvas draw.Canvas, plt *plot.Plot) {
+	transformX, transformY := plt.Transforms(&canvas)
+	currentStyle := vb.LineStyle
 
-	for _, TOHLCV := range bars.MarketData {
-		if TOHLCV.Close >= TOHLCV.Open {
-			lineStyle.Color = bars.ColorUp
+	for _, entry := range vb.MarketData {
+		// Устанавливаем цвет столбца в зависимости от движения цены.
+		if entry.Close >= entry.Open {
+			currentStyle.Color = vb.PositiveColor
 		} else {
-			lineStyle.Color = bars.ColorDown
+			currentStyle.Color = vb.NegativeColor
 		}
 
-		// Преобразование данных в соответствующие координаты на холсте.
-		x := trX(TOHLCV.Time)
-		y0 := trY(0)
-		y := trY(TOHLCV.Volume)
+		// Преобразуем данные в координаты холста.
+		xPos := transformX(entry.Time)
+		baseY := transformY(0)
+		volumeY := transformY(entry.Volume)
 
-		// Рисуем столбец объёма.
-		bar := c.ClipLinesY([]vg.Point{{x, y0}, {x, y}})
-		c.StrokeLines(lineStyle, bar...)
+		// Рисуем вертикальный столбец объёма.
+		bar := canvas.ClipLinesY([]vg.Point{{xPos, baseY}, {xPos, volumeY}})
+		canvas.StrokeLines(currentStyle, bar...)
 	}
 }
 
-// DataRange реализует метод DataRange интерфейса plot.DataRanger.
-func (bars *VBars) DataRange() (xmin, xmax, ymin, ymax float64) {
-	xmin = math.Inf(1)
-	xmax = math.Inf(-1)
-	ymin = 0
-	ymax = math.Inf(-1)
-	for _, TOHLCV := range bars.MarketData {
-		xmin = math.Min(xmin, TOHLCV.Time)
-		xmax = math.Max(xmax, TOHLCV.Time)
-		ymax = math.Max(ymax, TOHLCV.Volume)
+// DataRange вычисляет диапазоны данных для масштабирования графика.
+func (vb *VolumeBars) DataRange() (minX, maxX, minY, maxY float64) {
+	minX = math.Inf(1)
+	maxX = math.Inf(-1)
+	minY = 0
+	maxY = math.Inf(-1)
+
+	for _, entry := range vb.MarketData {
+		if entry.Time < minX {
+			minX = entry.Time
+		}
+		if entry.Time > maxX {
+			maxX = entry.Time
+		}
+		if entry.Volume > maxY {
+			maxY = entry.Volume
+		}
 	}
+
 	return
 }
 
-// GlyphBoxes реализует метод GlyphBoxes интерфейса plot.GlyphBoxer.
-func (bars *VBars) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
+// GlyphBoxes предоставляет ограничивающие рамки для глифов на графике.
+func (vb *VolumeBars) GlyphBoxes(plt *plot.Plot) []plot.GlyphBox {
 	boxes := make([]plot.GlyphBox, 2)
 
-	xmin, xmax, ymin, ymax := bars.DataRange()
+	minX, maxX, minY, maxY := vb.DataRange()
 
-	// Определяем рамки для минимальных значений.
-	boxes[0].X = plt.X.Norm(xmin)
-	boxes[0].Y = plt.Y.Norm(ymin)
+	// Определяем рамку для минимальных значений.
+	boxes[0].X = plt.X.Norm(minX)
+	boxes[0].Y = plt.Y.Norm(minY)
 	boxes[0].Rectangle = vg.Rectangle{
-		Min: vg.Point{X: -bars.LineStyle.Width / 2, Y: 0},
+		Min: vg.Point{X: -vb.LineStyle.Width / 2, Y: 0},
 		Max: vg.Point{X: 0, Y: 0},
 	}
 
-	// Определяем рамки для максимальных значений.
-	boxes[1].X = plt.X.Norm(xmax)
-	boxes[1].Y = plt.Y.Norm(ymax)
+	// Определяем рамку для максимальных значений.
+	boxes[1].X = plt.X.Norm(maxX)
+	boxes[1].Y = plt.Y.Norm(maxY)
 	boxes[1].Rectangle = vg.Rectangle{
 		Min: vg.Point{X: 0, Y: 0},
-		Max: vg.Point{X: +bars.LineStyle.Width / 2, Y: 0},
+		Max: vg.Point{X: +vb.LineStyle.Width / 2, Y: 0},
 	}
 
 	return boxes
