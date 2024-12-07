@@ -1,4 +1,4 @@
-package custplotter
+package customplot
 
 import "gonum.org/v1/plot/plotter"
 

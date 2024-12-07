@@ -1,15 +1,15 @@
-package examples
+package sampledata
 
 import (
 	"math"
 	"math/rand"
 	"time"
 
-	"candlestick-Go-Library/custplotter"
+	"candlestick-Go-Library/customplot"
 )
 
-// CreateTOHLCVExampleData генерирует и возвращает искусственные данные TOHLCV для тестирования и демонстрации.
-func CreateTOHLCVExampleData(n int) custplotter.MarketData {
+// GenerateCandlestickData генерирует и возвращает искусственные данные TOHLCV для тестирования и демонстрации.
+func GenerateCandlestickData(n int) customplot.MarketData {
 	rnd := rand.New(rand.NewSource(1))
 	m := 4 * n
 	fract := make([]float64, m)
@@ -31,7 +31,7 @@ func CreateTOHLCVExampleData(n int) custplotter.MarketData {
 		}
 	}
 
-	data := make(custplotter.MarketData, n)
+	data := make(customplot.MarketData, n)
 
 	loc, _ := time.LoadLocation("America/New_York")
 	for i := range data {

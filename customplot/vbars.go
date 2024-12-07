@@ -1,4 +1,4 @@
-package custplotter
+package customplot
 
 import (
 	"image/color"
@@ -25,9 +25,9 @@ type VBars struct {
 	draw.LineStyle
 }
 
-// InitializeVBars создаёт новый объект для построения
+// CreateVolumeBars создаёт новый объект для построения
 // столбчатой диаграммы на основе предоставленных данных.
-func InitializeVBars(data MarketDataProvider) (*VBars, error) {
+func CreateVolumeBars(data MarketDataProvider) (*VBars, error) {
 	cpy, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err

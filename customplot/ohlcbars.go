@@ -1,4 +1,4 @@
-package custplotter
+package customplot
 
 import (
 	"image/color"
@@ -32,9 +32,9 @@ type OHLCBars struct {
 	TickWidth vg.Length
 }
 
-// InitializeOHLCBars создаёт новый объект для
+// CreateOHLCPlot создаёт новый объект для
 // построения диаграммы столбцов на основе предоставленных данных.
-func InitializeOHLCBars(data MarketDataProvider) (*OHLCBars, error) {
+func CreateOHLCPlot(data MarketDataProvider) (*OHLCBars, error) {
 	cpy, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err

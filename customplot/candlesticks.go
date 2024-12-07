@@ -1,4 +1,4 @@
-package custplotter
+package customplot
 
 import (
 	"image/color"
@@ -13,10 +13,16 @@ import (
 // DefaultCandleWidthFactor задаёт ширину свечи относительно DefaultLineStyle.Width.
 var DefaultCandleWidthFactor = 3
 
+var (
+	DefaultColorUp   = color.RGBA{R: 128, G: 192, B: 128, A: 255} // Зеленый
+	DefaultColorDown = color.RGBA{R: 255, G: 128, B: 128, A: 255} // Красный
+	DefaultLineStyle = plotter.DefaultLineStyle
+)
+
 // Candlesticks реализует интерфейс Plotter, создавая
 // столбчатую диаграмму из кортежей time, open, high, low, close.
 type Candlesticks struct {
-	MarketData
+	MarketData MarketData
 
 	// ColorUp — цвет свечей, где C >= O.
 	ColorUp color.Color
@@ -34,9 +40,9 @@ type Candlesticks struct {
 	FixedLineColor bool
 }
 
-// NewCandleChart создаёт новый объект для рисования свечей
+// BuildCandlestickSeries создаёт новый объект для рисования свечей
 // на основе предоставленных данных.
-func NewCandleChart(data MarketDataProvider) (*Candlesticks, error) {
+func BuildCandlestickSeries(data MarketDataProvider) (*Candlesticks, error) {
 	cpy, err := CloneMarketData(data)
 	if err != nil {
 		return nil, err
@@ -45,9 +51,9 @@ func NewCandleChart(data MarketDataProvider) (*Candlesticks, error) {
 	return &Candlesticks{
 		MarketData:     cpy,
 		FixedLineColor: true,
-		ColorUp:        color.RGBA{R: 128, G: 192, B: 128, A: 255}, // Зелёный цвет более заметен для глаза.
-		ColorDown:      color.RGBA{R: 255, G: 128, B: 128, A: 255},
-		LineStyle:      plotter.DefaultLineStyle,
+		ColorUp:        DefaultColorUp,
+		ColorDown:      DefaultColorDown,
+		LineStyle:      DefaultLineStyle,
 		CandleWidth:    vg.Length(DefaultCandleWidthFactor) * plotter.DefaultLineStyle.Width,
 	}, nil
 }

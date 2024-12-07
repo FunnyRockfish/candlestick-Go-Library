@@ -3,8 +3,8 @@ package tests_test
 import (
 	"testing"
 
-	"candlestick-Go-Library/custplotter"
-	"candlestick-Go-Library/custplotter/internal"
+	"candlestick-Go-Library/customplot"
+	"candlestick-Go-Library/customplot/internal"
 	"candlestick-Go-Library/logger"
 	"gonum.org/v1/plot"
 )
@@ -20,7 +20,7 @@ func TestNewOHLCBars(t *testing.T) {
 	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
 	log.Info("Creating OHLC bars")
-	bars, err := custplotter.InitializeOHLCBars(testData)
+	bars, err := customplot.CreateOHLCPlot(testData)
 	if err != nil {
 		log.Errorf("Failed to create OHLC bars: %v", err)
 		t.FailNow()
@@ -28,7 +28,7 @@ func TestNewOHLCBars(t *testing.T) {
 
 	plotInstance.Add(bars)
 
-	testFile := "testdata/ohlcbars.png"
+	testFile := "testdata/ohlc_graph.png"
 	log.Infof("Saving OHLC bars plot to file: %s", testFile)
 	err = plotInstance.Save(1180, 200, testFile)
 	if err != nil {

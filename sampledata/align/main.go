@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"candlestick-Go-Library"
-	"candlestick-Go-Library/custplotter"
-	"candlestick-Go-Library/examples"
+	"candlestick-Go-Library/customplot"
+	"candlestick-Go-Library/sampledata"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/vg/draw"
 	"gonum.org/v1/plot/vg/vgimg"
@@ -34,7 +34,7 @@ func (ctt CustomTimeTicks) Ticks(min, max float64) []plot.Tick {
 
 func main() {
 	n := 300
-	fakeTOHLCVs := examples.CreateTOHLCVExampleData(n)
+	fakeTOHLCVs := sampledata.GenerateCandlestickData(n)
 
 	p1 := plot.New()
 
@@ -45,7 +45,7 @@ func main() {
 		Step:   1 * time.Hour, // например: метка каждый час
 	}
 
-	candlesticks, err := custplotter.NewCandleChart(fakeTOHLCVs)
+	candlesticks, err := customplot.BuildCandlestickSeries(fakeTOHLCVs)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -60,7 +60,7 @@ func main() {
 		Step:   1 * time.Hour, // например: метка каждый час
 	}
 
-	vBars, err := custplotter.InitializeVBars(fakeTOHLCVs)
+	vBars, err := customplot.CreateVolumeBars(fakeTOHLCVs)
 	if err != nil {
 		log.Panic(err)
 	}

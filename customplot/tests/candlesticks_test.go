@@ -3,8 +3,8 @@ package tests_test
 import (
 	"testing"
 
-	"candlestick-Go-Library/custplotter"
-	"candlestick-Go-Library/custplotter/internal"
+	"candlestick-Go-Library/customplot"
+	"candlestick-Go-Library/customplot/internal"
 	"candlestick-Go-Library/logger"
 	"gonum.org/v1/plot"
 )
@@ -20,14 +20,14 @@ func TestNewCandlesticks(t *testing.T) {
 	plotInstance.X.Tick.Marker = plot.TimeTicks{Format: "2006-01-02\n15:04:05"}
 
 	log.Info("Creating candlestick bars")
-	bars, err := custplotter.NewCandleChart(testData)
+	bars, err := customplot.BuildCandlestickSeries(testData)
 	if err != nil {
 		log.Errorf("Failed to create candlestick bars: %v", err)
 		t.FailNow()
 	}
 	plotInstance.Add(bars)
 
-	testFile := "testdata/candlesticks.png"
+	testFile := "testdata/candlestick_chart.png"
 	log.Infof("Saving plot to file: %s", testFile)
 	err = plotInstance.Save(1000, 150, testFile)
 	if err != nil {

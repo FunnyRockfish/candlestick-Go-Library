@@ -29,7 +29,7 @@ func compareFiles(path1, path2 string) bool {
 // TestImage сравнивает тестовый файл <NAME>.png с эталонным файлом <NAME>_golden.png
 // и вызывает ошибку теста, если их содержимое не совпадает.
 func TestImage(t *testing.T, testFile string) {
-	if !compareFiles(testFile, strings.TrimSuffix(testFile, filepath.Ext(testFile))+"_golden.png") {
+	if !compareFiles(testFile, strings.TrimSuffix(testFile, filepath.Ext(testFile))+"_expected.png") {
 		t.Errorf("несоответствие изображения для %s\n", testFile)
 	}
 }

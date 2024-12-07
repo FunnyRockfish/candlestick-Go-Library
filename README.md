@@ -12,23 +12,23 @@ _Работа является надстройкой к библиотеке [g
 
 Пример кода в `candlestick-Go-Library/examples/ohlcbars/main.go` показывает, как можно создать график, содержащий OHLC бар-чарт:
 
-![OHLC bars](examples/ohlcbars/ohlcbars.png)
+![OHLC bars](sampledata/ohlc_graph/ohlcbars.png)
 
 ### Плоттер свечей (Candlesticks)
 
 Пример кода в `candlestick-Go-Library/examples/candlesticks/main.go` демонстрирует, как создать график со свечным чартом:
 
-![Candlesticks](examples/candlesticks/candlesticks.png)
+![Candlesticks](sampledata/candlestick_chart/candlesticks.png)
 
 ### Плоттер баров объёма торговли
 
 Пример кода в `candlestick-Go-Library/examples/vbars/main.go` показывает, как можно создать график, содержащий бар-чарт объёма торгов:
 
-![Volume bars](examples/vbars/vbars.png)
+![Volume bars](sampledata/volume_graph/vbars.png)
 
 
 ### Накладывание графиков друг на друга по горизонтали и выравнивание 
 
 С помощью функции `Align` можно выравнивать, например, OHLC бар-чарт и бар-чарт объёма, предоставляя, например, 2/3 доступной высоты для OHLC-чарта и 1/3 высоты для объёмного графика.
 
-![Alignment](examples/align/align.png)
+![Alignment](sampledata/align/align.png)
